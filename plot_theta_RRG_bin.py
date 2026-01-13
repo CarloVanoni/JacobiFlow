@@ -12,16 +12,6 @@ import sys
 import matplotlib as mpl
 #from histo_maker import *
 
-def powerLawDistribution(n, theta, x_min, x_max):
-    number = np.array([])
-    alpha = 2-theta
-    for i in range(n):
-        norm = x_max**(1-alpha) - x_min**(1-alpha)
-        u_val = random.uniform(0, 1)
-        number = np.append(number,random.choice((-1, 1)) * (u_val*norm + x_min**(1-alpha))**(1/(1-alpha)))
-
-    return number
-
 plt.rcParams["figure.figsize"] = [5,5]
 plt.rcParams.update({"text.usetex": True, "font.family": "serif", "font.size": 14})
 #cols = plt.get_cmap('cool', 11)
