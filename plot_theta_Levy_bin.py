@@ -5,11 +5,6 @@ Reads precomputed "theta" curves (and their errors) from the
 Results_summary_bin directory and plots theta(w) for various
 values of the Levy parameter mu. The script produces a PDF
 "Plots/theta_Levy_W{W}_bin.pdf" and shows the figure.
-
-This version:
-- Adds explanatory comments throughout the code.
-- Removes unused imports and commented-out lines while preserving
-  the original behavior and file I/O/plotting logic.
 """
 
 import numpy as np
@@ -33,7 +28,7 @@ plt.rcParams.update({
 fig, ax = plt.subplots()
 
 # ---------- Parameters (same as original) ----------
-dis = 7999            # disorder seed / identifier used in filenames
+dis = 7999            # disorder identifier used in filenames
 gamma = 1             # parameter used in filenames
 mu_vec = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1, 1.2]  # Levy exponents to plot
 W = 1                 # another parameter used in filenames
@@ -72,8 +67,6 @@ for iw, mu in enumerate(mu_vec):
     theta_err = np.loadtxt(filename_err)
 
     # Select the indices in w_plot that are between 1e-4 and 1e-1 (as in original code).
-    # Note: the original implementation produced indices relative to a sub-selection;
-    # we preserve the exact sequence of operations to keep behavior identical.
     ind_plot = np.where(w_plot > 0.0001)[0]
     ind_plot = np.where(w_plot[ind_plot] < 0.1)[0]
 
