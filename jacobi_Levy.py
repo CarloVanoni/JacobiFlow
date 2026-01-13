@@ -20,16 +20,32 @@ rng = default_rng()
 
 @njit
 def compute_r(data):
+    """
+    Compute local ratios r of consecutive gaps around the median of `data`.
+
+    Parameters:
+    - data: 1D numpy array of values (e.g. energy levels).
+
+    Returns:
+    - array of ratios min(diff[i], diff[i+1]) / max(diff[i], diff[i+1]) computed
+      from 50 gaps centered around the median element of the sorted data.
+    """
     data_n = np.sort(data)
     diff = np.diff(data_n[N//2-25:N//2+25])
     return np.minimum(diff[:-1], diff[1:]) / np.maximum(diff[:-1], diff[1:])
 
+
 @jit(nopython=True)
 def rand_choice_nb(arr, prob):
     """
-    :param arr: A 1D numpy array of values to sample from.
-    :param prob: A 1D numpy array of probabilities for the given samples.
-    :return: Two random samples from the given array with the given probabilities.
+    Draw two samples from `arr` according to probabilities `prob`.
+
+    Parameters:
+    - arr: 1D numpy array of possible values.
+    - prob: 1D numpy array of sampling probabilities (must sum to 1).
+
+    Returns:
+    - tuple (value1, value2): Two independently sampled values from `arr`.
     """
     cumsum_prob = np.cumsum(prob)  # pre-calculate cumulative sum
     #rand_nums = np.random.random(2)  # generate two random numbers once
@@ -40,6 +56,19 @@ def rand_choice_nb(arr, prob):
 
 @numba.jit(nopython=True)
 def get_bin_edges(a, bins):
+    """
+    Compute evenly spaced bin edges for array `a` with `bins` bins.
+
+    This mirrors numpy.histogram behaviour for uniform bins and avoids
+    roundoff error on the last edge.
+
+    Parameters:
+    - a: 1D numpy array of values.
+    - bins: integer number of bins.
+
+    Returns:
+    - bin_edges: 1D array of length bins+1
+    """
     bin_edges = np.zeros((bins+1,), dtype=np.float64)
     a_min = a.min()
     a_max = a.max()
@@ -53,6 +82,16 @@ def get_bin_edges(a, bins):
 
 @numba.jit(nopython=True)
 def compute_bin(x, bin_edges):
+    """
+    Compute the bin index for a scalar x given uniform bin_edges.
+
+    Parameters:
+    - x: scalar value
+    - bin_edges: 1D array of bin edges (length n+1)
+
+    Returns:
+    - integer bin index in [0, n-1] or None if x is outside edges
+    """
     # assuming uniform bins for now
     n = bin_edges.shape[0] - 1
     a_min = bin_edges[0]
@@ -72,6 +111,13 @@ def compute_bin(x, bin_edges):
 
 @numba.jit(nopython=True)
 def numba_histogram(a, bins):
+    """
+    Compute a histogram (counts) for array `a` using `bins` uniform bins.
+
+    Returns:
+    - hist: counts per bin (length bins)
+    - bin_edges: edges used (length bins+1)
+    """
     hist = np.zeros((bins,), dtype=np.intp)
     bin_edges = get_bin_edges(a, bins)
 
@@ -85,10 +131,37 @@ def numba_histogram(a, bins):
 
 @numba.jit(nopython=True)
 def f_V(omega,omega_0,sigma_omega):
+    """
+    Frequency-dependent factor used by FGR matrices.
+
+    This returns the symmetric combination of two Gaussians centered at +/- omega_0,
+    normalized by a factor 1/(2*sqrt(2*pi*sigma^2)) so it behaves like a probability
+    density amplitude factor.
+
+    Parameters:
+    - omega: scalar difference (e.g. energy difference)
+    - omega_0: center frequency
+    - sigma_omega: width of Gaussians
+
+    Returns:
+    - scalar value of the function at omega
+    """
     return 1/(2*np.sqrt(2*np.pi*sigma_omega**2)) * ( np.exp(-((omega-omega_0)**2)/(2*sigma_omega**2) ) + np.exp(-((omega+omega_0)**2)/(2*sigma_omega**2) ))
+
 
 #@numba.jit(nopython=True)
 def off_diagonal_elements(matrix, n):
+    """
+    Randomly sample `n` off-diagonal elements and corresponding diagonal differences.
+
+    Parameters:
+    - matrix: square numpy array
+    - n: number of samples
+
+    Returns:
+    - off_diagonal: 1D numpy array with sampled off-diagonal values
+    - diagonal_diff: 1D numpy array with H[i,i] - H[j,j] for the sampled pairs
+    """
     #random.seed(42)  # For reproducibility
     indices = [(i, j) for i in range(len(matrix)) for j in range(i+1,len(matrix))]
     random.shuffle(indices)
@@ -109,6 +182,19 @@ def off_diagonal_elements(matrix, n):
 
 
 def powerLawDistribution(n, theta, x_min, x_max):
+    """
+    Generate `n` samples drawn from a two-sided power-law-like distribution
+    parameterized by `theta` between x_min and x_max. This implementation uses
+    an inverse-transform-like sampling with a sign chosen uniformly.
+
+    Parameters:
+    - n: number of samples
+    - theta: parameter controlling the power-law tail (used to compute alpha)
+    - x_min, x_max: bounds used in the transform
+
+    Returns:
+    - numpy array of length n with signed samples
+    """
     number = np.array([])
     alpha = 2-theta
     for i in range(n):
@@ -120,6 +206,16 @@ def powerLawDistribution(n, theta, x_min, x_max):
 
 
 def create_upper_matrix(values, size):
+    """
+    Place `values` into the strict upper triangular part of a size x size matrix.
+
+    Parameters:
+    - values: 1D array with length size*(size-1)//2 ordering assumed by np.triu_indices
+    - size: integer matrix size
+
+    Returns:
+    - 2D numpy array with `values` in upper triangle and zeros elsewhere
+    """
     upper = np.zeros((size, size))
     upper[np.triu_indices(size, 1)] = values
     return(upper)
@@ -127,6 +223,16 @@ def create_upper_matrix(values, size):
 
 @numba.jit(nopython=True)
 def build_FGR_H(N,sigma_E,omega_0,sigma_omega,J):
+    """
+    Build a matrix according to a Fermi Golden Rule (FGR)-like model.
+
+    The diagonal entries are sampled uniformly over [-sigma_E/2, sigma_E/2].
+    Off-diagonals are random Gaussians scaled by sqrt(f_V(diag_diff,...))/sqrt(N/sigma_E).
+
+    Returns:
+    - H: NxN symmetric matrix
+    - off_val_tot: sum of squared off-diagonal elements times 2 (since each pair counted twice)
+    """
     off_val_tot = 0
     H = np.zeros((N,N))
 
@@ -144,6 +250,13 @@ def build_FGR_H(N,sigma_E,omega_0,sigma_omega,J):
 
 @numba.jit(nopython=True)
 def build_FGR_H_box(N,sigma_E,omega_0,sigma_omega,J):
+    """
+    Same as build_FGR_H but off-diagonal random variable is uniform in [-1,1]
+    instead of Gaussian.
+
+    Returns:
+    - H: matrix and off_val_tot similar to build_FGR_H
+    """
     off_val_tot = 0
     H = np.zeros((N,N))
 
@@ -160,6 +273,14 @@ def build_FGR_H_box(N,sigma_E,omega_0,sigma_omega,J):
 
 
 def build_powlaw_H(N,theta):
+    """
+    Build a symmetric matrix whose off-diagonal entries follow a custom power-law
+    distribution defined by powerLawDistribution, with diagonals uniform in [-2,2].
+
+    Returns:
+    - H: symmetric NxN matrix
+    - off_val_tot: 2 * sum(r**2) where r are upper-triangular entries
+    """
     r = powerLawDistribution(N*(N-1)//2,theta,0.001,1)
     off_val_tot = 2*np.sum(r**2)
 
@@ -174,6 +295,18 @@ def build_powlaw_H(N,theta):
 
 
 def build_GOE_H(N,t):
+    """
+    Build a Gaussian Orthogonal Ensemble (GOE)-like random matrix with an extra
+    perturbation: add t extra random columns per row to create stronger couplings.
+
+    Parameters:
+    - N: matrix size
+    - t: integer parameter controlling added columns
+
+    Returns:
+    - H: symmetric NxN matrix
+    - off_val_tot: sum of squares of off-diagonal elements
+    """
     H = rng.standard_normal((N,N))/np.sqrt(2*N)
     big_inds = rng.integers(N, size=N*t)
     H[np.repeat(np.arange(N),t),big_inds] += rng.standard_normal(N*t)/np.sqrt(2*t)
@@ -186,6 +319,15 @@ def build_GOE_H(N,t):
 
 @numba.jit(nopython=True)
 def plbrm(N,a,b,W):
+    """
+    Generate a Power-Law Banded Random Matrix (PLBRM) realization.
+
+    Off-diagonals follow a Gaussian with variance decreasing as a power-law of distance.
+
+    Returns:
+    - init: Python list of upper-triangular off-diagonal values in insertion order
+    - H: the NxN symmetric matrix
+    """
     H = np.zeros((N,N))
     init = []
 
@@ -200,13 +342,26 @@ def plbrm(N,a,b,W):
 
 # Create upper triangular matrix
 def create_upper_matrix(values, size):
+    """
+    Duplicate of earlier create_upper_matrix (kept for compatibility).
+
+    See the other create_upper_matrix for details.
+    """
     upper = np.zeros((size, size))
     upper[np.triu_indices(size, 1)] = values
     return(upper)
 
 
 def LNRP_Matrix(n,gamma,p):
+    """
+    Build a matrix with log-normal-related heavy tails for off-diagonal entries.
 
+    Off-diagonals are scaled log-normal random variables with random sign and a
+    size-dependent prefactor n**(-gamma/2). Diagonals are uniform in [-1,1].
+
+    Returns:
+    - H: symmetric NxN matrix
+    """
     # Extract LN off diag elements
     r = n**(-gamma/2)*np.multiply((1-2*np.random.randint(0,2,size=n*(n-1)//2)) , lognorm.rvs(np.sqrt(gamma * p * np.log(n) / 2.), size=n*(n-1)//2))
 
@@ -225,15 +380,15 @@ def random_power_law(mu, N, gamma, n):
     """
     Generate n random numbers distributed according to
     p(x) = (mu / (2 * N**gamma * x**(1 + mu))) * HeavisideTheta(|x| > N**(-gamma / mu)).
-    
+
     Parameters:
-    mu (float): Shape parameter of the power-law distribution.
-    N (float): A normalization or scale factor.
-    gamma (float): Controls the threshold for the truncation.
-    n (int): Number of random values to generate.
-    
+    - mu (float): Shape parameter of the power-law distribution.
+    - N (float): A normalization or scale factor.
+    - gamma (float): Controls the threshold for the truncation.
+    - n (int): Number of random values to generate.
+
     Returns:
-    numpy.ndarray: Array of n random numbers following the desired distribution.
+    - numpy.ndarray: Array of n random numbers following the desired distribution.
     """
     
     # Threshold for |x| based on the given condition
@@ -254,7 +409,17 @@ def random_power_law(mu, N, gamma, n):
 
 
 def Levy_Matrix(n,gamma,mu,W):
+    """
+    Construct a symmetric matrix with Levy (power-law) distributed off-diagonals.
 
+    Parameters:
+    - n: matrix size
+    - gamma, mu: parameters passed to random_power_law
+    - W: width for diagonal uniform distribution
+
+    Returns:
+    - H: symmetric nxn matrix
+    """
     # Extract LN off diag elements
     r = random_power_law(mu, n, gamma, n*(n-1)//2)
 
@@ -273,6 +438,15 @@ def Levy_Matrix(n,gamma,mu,W):
 
 
 def fill_dist_RRG(N):
+    """
+    Build an NxN matrix of shortest-path distances for a random 3-regular graph.
+
+    Parameters:
+    - N: number of nodes
+
+    Returns:
+    - dist: NxN numpy array where dist[i,j] is the graph distance between i and j
+    """
     G = nx.random_regular_graph(3,N)
 
     dist = np.zeros((N,N))
@@ -286,6 +460,15 @@ def fill_dist_RRG(N):
 
 
 def fill_Bethe(N):
+    """
+    Load a precomputed Bethe (Cayley) tree adjacency from file and compute distances.
+
+    The function expects a file named "Adjacency/AdM_L%d.txt" where L is tree level.
+    The matrix size is recalculated from input N and l=2.
+
+    Returns:
+    - dist: NxN array of graph distances
+    """
     L = int(np.log(N)/np.log(2))
     l = 2
     N = ((l+1)*l**(L) - 2) // (l - 1)
@@ -311,7 +494,16 @@ def fill_Bethe(N):
 
 @numba.jit(nopython=True)
 def fill_RRG_Jac(N,dist,w0,z,W):
+    """
+    Fill a matrix according to a random-regular-graph-inspired rule for Jacobi simulations.
 
+    H[i,j] decays with graph distance `dist[i,j]` both exponentially and with a
+    1/sqrt(2**dist) factor; diagonals uniformly in [-W/2, W/2].
+
+    Returns:
+    - H: NxN symmetric matrix
+    - off_val_tot: sum of squared off-diagonal elements
+    """
     H = np.zeros((N,N))
 
     for i in range(N):
@@ -330,7 +522,14 @@ def fill_RRG_Jac(N,dist,w0,z,W):
 
 @numba.jit(nopython=True)
 def fill_RRG_SRA(N,dist,w0,z,W):
+    """
+    Same as fill_RRG_Jac but also returns a flattened list `init` of off-diagonal entries.
 
+    Returns:
+    - init: list of sampled off-diagonal values
+    - H: matrix
+    - off_val_tot: sum of squared off-diagonals
+    """
     H = np.zeros((N,N))
     init = []
 
@@ -351,11 +550,31 @@ def fill_RRG_SRA(N,dist,w0,z,W):
 
 @numba.jit(nopython=True)
 def compute_dh(off_diag):
+    """
+    Compute the average absolute gap between consecutive sorted off-diagonal values.
+
+    Parameters:
+    - off_diag: 1D array
+
+    Returns:
+    - mean absolute difference of sorted(off_diag)
+    """
     return np.mean(np.abs(np.diff(np.sort(off_diag))))
 
 
 @numba.jit(nopython=True)
 def off_diag_SRA_FGR(N,n,sigma_E,omega_0,sigma_omega,J):
+    """
+    Produce n samples of off-diagonal elements following the FGR prescription,
+    along with diag differences, and some statistics (dh, off_val_tot, level_spacing).
+
+    Returns:
+    - off_diag: array of off-diagonal samples
+    - diag_diff: array of corresponding diagonal differences (here sampled)
+    - dh: mean gap of sorted off_diag
+    - off_val_tot: sum of squared off-diagonal samples
+    - level_spacing: mean spacing of a random normal diagonal ensemble
+    """
     diag_diff = np.zeros(n)
     off_diag = np.zeros(n)
     for i in range(n):
@@ -383,6 +602,13 @@ def off_diag_SRA_FGR(N,n,sigma_E,omega_0,sigma_omega,J):
 
 @numba.jit(nopython=True)
 def off_diag_SRA_FGR_box(n,sigma_E,omega_0,sigma_omega,J):
+    """
+    Similar to off_diag_SRA_FGR but uses uniform box-distributed off-diagonal
+    random numbers instead of Gaussian ones.
+
+    Returns:
+    - off_diag, diag_diff, dh, off_val_tot
+    """
     diag_diff = np.zeros(n-1)
     off_diag = np.zeros(n-1)
     for i in range(n-1):
@@ -397,6 +623,13 @@ def off_diag_SRA_FGR_box(n,sigma_E,omega_0,sigma_omega,J):
     return off_diag,diag_diff,dh,off_val_tot
 
 def off_diag_SRA_powlaw(n,theta):
+    """
+    Build off-diagonal and diag-difference samples where off-diagonals follow
+    the custom power-law implemented in powerLawDistribution.
+
+    Returns:
+    - off_diag, diag_diff, dh, off_val_tot
+    """
     diag_diff = np.zeros(n)
     off_diag = np.zeros(n)
     for i in range(n):
@@ -412,6 +645,19 @@ def off_diag_SRA_powlaw(n,theta):
 
 @njit
 def prob_from_matrix(H,N,n):
+    """
+    Randomly sample `n` pairs (i1,i2) from an NxN matrix H and return the
+    corresponding off-diagonal elements and diagonal differences.
+
+    Parameters:
+    - H: NxN matrix
+    - N: matrix dimension
+    - n: number of samples to draw (must be < N)
+
+    Returns:
+    - off_diag: sampled off-diagonal elements
+    - diag_diff: sampled diagonal differences H[i1,i1] - H[i2,i2]
+    """
     # n = population size, must be < N
     
     off_diag = np.zeros(n)
@@ -432,7 +678,14 @@ def prob_from_matrix(H,N,n):
 
 @njit
 def fill_M(N, H):
+    """
+    For each row i, find the column index j (j != i) with largest |H[i,j]|
+    and store it in M[i]. If row i has all zeros (no off-diagonal), set M[i]
+    to (i+1)%N as a fallback.
 
+    Returns:
+    - M: 1D integer array of size N with partner indices
+    """
     M = np.zeros(N)
     for i in range(N):
         max_amp = 0
@@ -450,6 +703,10 @@ def fill_M(N, H):
 
 @njit
 def find_offdiag_M (N, H, M):
+    """
+    Using the partner array M, find the index i for which |H[i, M[i]]| is
+    maximal (excluding diagonal entries). Returns the row index pos.
+    """
     max_offdiag = 0
     for i in range(N):
         if np.abs(H[i,int(M[i])]) > max_offdiag and i!=int(M[i]):
@@ -460,6 +717,14 @@ def find_offdiag_M (N, H, M):
 
 @njit
 def update_vecM(N, H, M, pos):
+    """
+    Update the partner array M after a Jacobi rotation that affected rows/columns
+    `pos` and `M[pos]`. For elements that referred to either of those indices
+    recompute their best partner by scanning the corresponding row.
+
+    Returns:
+    - updated M array
+    """
     val = int(M[pos])
 
     for i in range(N):
@@ -483,7 +748,25 @@ def update_vecM(N, H, M, pos):
 
 @njit
 def jacobi(N, H, iter):
+    """
+    Perform the Jacobi diagonalization procedure on symmetric matrix H.
 
+    The routine:
+    - initializes a partner list M to pick large off-diagonal elements
+    - performs at most iter*N Jacobi rotations
+    - tracks various diagnostics (nres, cumul, ipr, w_vec)
+
+    Parameters:
+    - N: matrix size
+    - H: NxN symmetric matrix (modified in place)
+    - iter: number of outer iterations (actual max iterations = iter * N)
+
+    Returns:
+    - niter_vec: list of iteration indices when w_pivot changed
+    - w_vec: pivot thresholds encountered
+    - nres_vec: list of nres values corresponding to w_vec
+    - ipr_vec: list of average inverse participation ratios corresponding to w_vec
+    """
     up_lim = np.max(np.diag(H))
     low_lim = np.min(np.diag(H))
 
@@ -638,14 +921,25 @@ def jacobi(N, H, iter):
 
 @njit
 def get_bin_index(w):
+    """
+    Convert a pivot threshold w into an integer bin index using log spacing.
+
+    This index mapping is used by jacobi_bin to accumulate counts per magnitude
+    scale.
+    """
     return int(round(np.log(w / 10) / np.log(1/1.1)))
 
 
 
 @njit
 def jacobi_bin(N, H, iter):
+    """
+    A variant of jacobi that accumulates the number of Jacobi rotations per
+    logarithmic bin of off-diagonal magnitude until a cutoff is reached.
 
-
+    Returns:
+    - niter_vec: 1D array counting rotations per magnitude bin
+    """
     niter_max = iter*N
     
 
