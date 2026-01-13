@@ -1,6 +1,6 @@
 # JacobiFlow
 
-This repository contains the code and data used for the paper on the Jacobi flow of resonances. The implementations compute and analyse the flow of matrix elements and resonances for several model classes (XXZ chain, Random Regular Graphs (RRG), and Levy matrices), and include plotting utilities and precomputed data files.
+This repository contains the code and data used for the paper "Resonance proliferation through the Jacobi flow" by A. Chandran, D. M. Long, and C. Vanoni. The implementations compute and analyse the flow of matrix elements and resonances for several model classes (XXZ chain, Random Regular Graphs (RRG), and Levy matrices), and include plotting utilities and precomputed data files.
 
 ## Repository structure
 
@@ -40,11 +40,8 @@ python -m pip install numba tqdm seaborn
 
 Each main script is a standalone Python program. Typical usage patterns:
 
-- Inspect available command-line options (if implemented) with:
-  python jacobi_XXZ.py --help
-
 - Run a Jacobi-flow simulation (example):
-  python jacobi_XXZ.py
+  python jacobi_XXZ.py $parameters (different for different models, look for sys.argv entries)
 
 - Build matrices from scratch using matBuilder.py (example):
   python matBuilder.py
@@ -52,8 +49,6 @@ Each main script is a standalone Python program. Typical usage patterns:
 - Plot results from binary output files:
   python plot_theta_XXZ_bin.py
   python plot_BoE_flow.py
-
-If a script has no CLI, open the header of the script and edit the parameters at the top, or import functions directly from the script in an interactive session or Jupyter notebook.
 
 ## Data files
 
@@ -75,23 +70,10 @@ Look inside each plotting script to find the exact filenames and parameters used
 - Some procedures are computationally heavy (especially for larger L in the XXZ model). If available, enable Numba or run on a machine with more memory/CPU.
 - The precomputed XXZ_OFFDIAG_L16.txt file is particularly large; if you only need small sizes, omit downloading L=16 to save space.
 
-## Contributing
-
-Contributions and bug reports are welcome. Please open an issue describing the problem or a feature request, and submit pull requests with clear changes and tests where appropriate.
-
-## License
-
-This repository currently does not include a license file. Please contact the owner (CarloVanoni) to confirm licensing terms before re-using substantial portions of the code.
-
 ## Citation
 
-If you use this code in your research, please cite the corresponding paper ("Jacobi flow of resonances"). If you want, provide the DOI or BibTeX entry and I will add a complete citation block here.
-
+If you use this code in your research, please cite the corresponding paper ("Resonance proliferation through the Jacobi flow" by A. Chandran, D. M. Long, and C. Vanoni - arXiv:26xx.xxxxx). 
 ## Contact
 
 Owner: https://github.com/CarloVanoni
-
-
----
-
-Notes from the assistant: I prepared a README.md describing the project, repository structure, dependencies, usage guidelines, data files and reproduction notes. If you want I can (1) add a full citation/BibTeX entry if you provide the paper reference, (2) include an example notebook demonstrating one full run-to-plot pipeline, or (3) commit the README.md into the repository now.
+Email: cvanoni [at] princeton [dot] edu
