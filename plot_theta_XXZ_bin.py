@@ -12,25 +12,20 @@ import sys
 import matplotlib.colors as mcolors
 from scipy.special import binom
 import matplotlib as mpl
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 #from histo_maker import *
 
-def powerLawDistribution(n, theta, x_min, x_max):
-    number = np.array([])
-    alpha = 2-theta
-    for i in range(n):
-        norm = x_max**(1-alpha) - x_min**(1-alpha)
-        u_val = random.uniform(0, 1)
-        number = np.append(number,random.choice((-1, 1)) * (u_val*norm + x_min**(1-alpha))**(1/(1-alpha)))
 
-    return number
-
-plt.rcParams["figure.figsize"] = [5,5]
-plt.rcParams.update({"text.usetex": True, "font.family": "serif", "font.size": 14})
-#cols = plt.get_cmap('cool', 11)
+plt.rcParams["figure.figsize"] = [2.33, 2.33]
+plt.rcParams.update({"text.usetex": True, "font.family": "serif", "font.size": 10, "axes.labelsize": 10,
+    "axes.titlesize": 10,
+    "xtick.labelsize": 8,
+    "ytick.labelsize": 8,
+    "legend.fontsize": 8,"axes.linewidth": 0.8})
 fig, ax = plt.subplots()
 
 
-W_vec = np.array([0.5, 1, 1.5, 2, 2.5, 3, 3.2, 3.5, 3.8, 4, 4.2, 4.4, 4.6, 4.8, 5, 5.2, 5.5, 6, 6.2, 6.5, 6.8, 7, 7.2, 7.5, 8])
+W_vec = np.array([0.5, 1, 1.5, 2, 2.5, 3, 3.2, 3.5, 3.8, 4, 4.2, 4.4, 4.6, 4.8, 5, 5.2, 5.5, 6, 6.2, 6.5, 6.8, 7, 7.2, 7.5, 8, 9, 10, 11 ,12, 13, 14, 15])
 
 cmap = plt.cm.viridis
 norm = mpl.colors.Normalize(vmin=np.min(W_vec), vmax=np.max(W_vec))
@@ -72,9 +67,20 @@ for L in range(14,15):
 
         theta_smooth = 1 + np.divide(np.diff(np.log(gauss)),np.diff(np.log(w_values)))
         
-        ax.plot(w_plot,theta[:-2],"-",color=cmap(norm(W)))
+        ax.plot(w_plot,theta[:-2],"-",linewidth=0.8,color=cmap(norm(W)))
         ax.fill_between(w_plot, theta[:-2] - theta_err[:-2],theta[:-2] + theta_err[:-2],color=cmap(norm(W)), alpha=0.3)
+"""
+        if W == 7:
 
+            axins.plot(w_plot,theta[:-2],"-",color=cmap(norm(W)))
+            axins.fill_between(w_plot, theta[:-2] - theta_err[:-2],theta[:-2] + theta_err[:-2],color=cmap(norm(W)), alpha=0.3)
+
+            filename = "Results_summary_bin/pval_XXZ_Jac_L%d_W%.2f_dis%d_test.txt"%(L,W,dis)
+            pval = np.loadtxt(filename)
+            print(len(w_plot),len(pval))
+
+            for i in range(len(w_plot)):
+                print(w_plot[i],pval[i])"""
 
 # Create scalar mappable
 sm = mpl.cm.ScalarMappable(cmap=cmap, norm=norm)
@@ -86,7 +92,7 @@ cbar = fig.colorbar(sm, cax=cbar_ax, orientation='horizontal')
 cbar.set_label(r"$W$", labelpad=2)
 
 # === Choose which values to label ===
-W_labels = [1, 3, 5, 8]
+W_labels = [1, 3, 5, 8, 12, 15]
 
 # Set major ticks and labels (only for selected W)
 cbar.set_ticks(W_labels)
@@ -124,9 +130,13 @@ ax.set_yticks([])
 # Remove y-axis label
 ax.set_ylabel('')
 
-ax.text(0.04, 0.04, "XXZ",
+ax.text(0.96, 0.04, "XXZ",
         transform=ax.transAxes,   # use axes fraction coordinates
-        ha='left', va='bottom')
+        ha='right', va='bottom')
+
+ax.text(0.96, 0.90, "(c)",
+        transform=ax.transAxes,   # use axes fraction coordinates
+        ha='right', va='bottom')
 
 
 plt.savefig("Plots/theta_XXZ_bin.pdf",bbox_inches="tight")
