@@ -12,10 +12,36 @@ import sys
 import matplotlib as mpl
 #from histo_maker import *
 
-plt.rcParams["figure.figsize"] = [5,5]
-plt.rcParams.update({"text.usetex": True, "font.family": "serif", "font.size": 14})
-#cols = plt.get_cmap('cool', 11)
+def powerLawDistribution(n, theta, x_min, x_max):
+    number = np.array([])
+    alpha = 2-theta
+    for i in range(n):
+        norm = x_max**(1-alpha) - x_min**(1-alpha)
+        u_val = random.uniform(0, 1)
+        number = np.append(number,random.choice((-1, 1)) * (u_val*norm + x_min**(1-alpha))**(1/(1-alpha)))
+
+    return number
+
+
+def RRG_ramp(x, W):
+    """
+    Computes:
+    f(x, W) = 2 + [x / ((2W - 1/x)/(4W**2) * 1/x**2)] * [1/(4W**2*x**4) - (2W - 1/x)/(2W**2*x**3)]
+    """
+    term1 = (2*W - 1/x) / (4*W**2) * 1/x**2
+    term2 = 1/(4*W**2 * x**4) - (2*W - 1/x)/(2*W**2 * x**3)
+    return 2 + x / term1 * term2
+
+
+plt.rcParams["figure.figsize"] = [2.33, 2.33]
+plt.rcParams.update({"text.usetex": True, "font.family": "serif", "font.size": 10, "axes.labelsize": 10,
+    "axes.titlesize": 10,
+    "xtick.labelsize": 8,
+    "ytick.labelsize": 8,
+    "legend.fontsize": 8,"axes.linewidth": 0.8})
+
 fig, ax = plt.subplots()
+
 
 dis = 9999
 W_vec = np.arange(1,26)
@@ -84,9 +110,21 @@ for L in range(10,11):
         ax.fill_between(w_plot_ind, theta_ind - theta_err_ind,theta_ind + theta_err_ind,color=cmap(norm(W)), alpha=0.3)
 
         if W>19:
-            ax.plot(w_plot_ind[ind_max_theta:ind_min_theta-1],theta_smooth[ind_max_theta:ind_min_theta],"-",color=cmap(norm(W)))
+            ax.plot(w_plot_ind[ind_max_theta:ind_min_theta-1],theta_smooth[ind_max_theta:ind_min_theta],"-",linewidth=0.8,color=cmap(norm(W)))
         else:
-            ax.plot(w_plot_ind[ind_max_theta:ind_min_theta+1],theta_smooth[ind_max_theta:ind_min_theta+1],"-",color=cmap(norm(W)))
+            ax.plot(w_plot_ind[ind_max_theta:ind_min_theta+1],theta_smooth[ind_max_theta:ind_min_theta+1],"-",linewidth=0.8,color=cmap(norm(W)))
+
+"""
+w = np.linspace(0.04,0.2,100)
+
+bump = np.array([])
+
+for i in w:
+    bump = np.append(bump,RRG_ramp(i,15))
+
+plt.plot(w,bump, "--")
+"""
+
 
 # Create scalar mappable
 sm = mpl.cm.ScalarMappable(cmap=cmap, norm=norm)
@@ -136,9 +174,13 @@ ax.set_yticks([])
 # Remove y-axis label
 ax.set_ylabel('')
 
-ax.text(0.04, 0.04, "RRG",
+ax.text(0.96, 0.04, "RRG",
         transform=ax.transAxes,   # use axes fraction coordinates
-        ha='left', va='bottom')
+        ha='right', va='bottom')
+
+ax.text(0.96, 0.90, "(b)",
+        transform=ax.transAxes,   # use axes fraction coordinates
+        ha='right', va='bottom')
 
 #plt.savefig("Plots/rho_dec_Bethe_W%.2f.pdf"%W)
 
