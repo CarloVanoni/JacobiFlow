@@ -11,22 +11,6 @@ import sys
 from scipy.special import binom
 #from histo_maker import *
 
-
-plt.rcParams["figure.figsize"] = [6,6]
-#plt.rcParams.update({"text.usetex": True, "font.family": "serif", "font.size": 14})
-
-def powerLawDistribution(n, theta, x_min, x_max):
-    number = np.array([])
-    alpha = 2-theta
-    for i in range(n):
-        norm = x_max**(1-alpha) - x_min**(1-alpha)
-        u_val = random.uniform(0, 1)
-        number = np.append(number,random.choice((-1, 1)) * (u_val*norm + x_min**(1-alpha))**(1/(1-alpha)))
-
-    return number
-
-
-
 def bootstrap_theta(n_vec, w_values, n_bootstrap=1000, ci=68):
     """
     Compute bootstrap error bars for theta(w).
@@ -75,16 +59,16 @@ def bootstrap_theta(n_vec, w_values, n_bootstrap=1000, ci=68):
     
     return theta_mean, theta_err
 
-
-
-cols = plt.get_cmap('viridis', 7)
-
+#Number of disorder realizations
 dis_num = 1800
 
+#Disorder values
 W_vec = [0.5, 1, 1.5, 2, 2.5, 3, 3.2, 3.5, 3.8, 4, 4.2, 4.4, 4.6, 4.8, 5, 5.2, 5.5, 6, 6.2, 6.5, 6.8, 7, 7.2, 7.5, 8]
 
+#System size
+L_vec = [14]
 
-for L in [14]:
+for L in L_vec:
     N=int(binom(L,L//2))
     for W in W_vec:
 
@@ -92,6 +76,7 @@ for L in [14]:
 
         data_histo = np.array([])  
 
+        #Load all files with same L and W
         for dis in range(dis_num):
             
             filename_n = "Results_XXZ/niter_XXZ_Jac_L%d_W%.2f_dis%d.txt"%(L,W,dis)
@@ -128,6 +113,7 @@ for L in [14]:
 
         theta_mean, theta_err = bootstrap_theta(padded_arrays_n, w_values)
         
+        #Save averaged results to file
         filename = "Results_summary_bin/theta_XXZ_Jac_L%d_W%.2f_dis%d_test.txt"%(L,W,dis)
         np.savetxt(filename, theta_mean)
 
