@@ -1,121 +1,77 @@
-#  ---------------------------------------------------------------------------------------------  #
-#
-#   This program builds the sparse matrices Sx[i],Sy[i],etc. of a spin chain of length L,
-#   acting only on site i.
-#
-#  ---------------------------------------------------------------------------------------------  #
-
-
-# program constants are defined already in the main
-
-
-#  -------------------------------  construct the basic matrices  ------------------------------  #
-
-#sx = np.array( [[0,1],[1,0]], dtype=np.complex_ ) / 2
-#sy = np.array( [[0,-1j],[1j, 0]], dtype=np.complex_ ) / 2
-sz = np.array( [[1,0],[0,-1]] ) / 2.
-sx = np.array( [[0,1],[1,0]] ) / 2.
-sy = np.array( [[0,1],[-1,0]] ) / (2.*1j)
-sp = np.array( [[0,1],[0,0]] )
-sm = np.array( [[0,0],[1,0]] )
-id = np.array( [[1,0],[0,1]] )
-
-#sx_list = []; sy_list = []
-sz_list = []
-sx_list = []
-sy_list = []
-sp_list = []; sm_list = []
-id_list = []
-
-for i in range(L):
-
-    if i==0:
-        #full_sx = sx; full_sy = sy
-        full_sz = sz
-        full_sx = sx
-        full_sy = sy
-        full_sp = sp; full_sm = sm
-        full_id = id
-    else:
-        #full_sx = sparse.kron(sparse.identity(2**i), sx); full_sy = sparse.kron(sparse.identity(2**i), sy)
-        full_sz = sparse.kron(sparse.identity(2**i), sz)
-        full_sx = sparse.kron(sparse.identity(2**i), sx)
-        full_sy = sparse.kron(sparse.identity(2**i), sy)
-        full_sp = sparse.kron(sparse.identity(2**i), sp); full_sm = sparse.kron(sparse.identity(2**i), sm)
-        ful_id = sparse.kron(sparse.identity(2**i), id)
-
-    if i!=L-1:
-        #full_sx = sparse.kron(full_sx, sparse.identity(2**(L-i-1))); full_sy = sparse.kron(full_sy, sparse.identity(2**(L-i-1)))
-        full_sz = sparse.kron(full_sz, sparse.identity(2**(L-i-1)))
-        full_sx = sparse.kron(full_sx, sparse.identity(2**(L-i-1)))
-        full_sy = sparse.kron(full_sy, sparse.identity(2**(L-i-1)))
-        full_sp = sparse.kron(full_sp, sparse.identity(2**(L-i-1))); full_sm = sparse.kron(full_sm, sparse.identity(2**(L-i-1)))
-        ful_id = sparse.kron(full_id, sparse.identity(2**(L-i-1)))
-
-    #sx_list.append( sparse.csr_matrix(full_sz) ); sy_list.append( sparse.csr_matrix(full_sz) )  
-    sz_list.append( sparse.csr_matrix(full_sz) )  
-    sx_list.append( sparse.csr_matrix(full_sx) )  
-    sy_list.append( sparse.csr_matrix(full_sy) )  
-    sp_list.append( sparse.csr_matrix(full_sp) ); sm_list.append( sparse.csr_matrix(full_sm) )
-    id_list.append( sparse.csr_matrix(full_id) )
-
-#del full_sx, full_sy, full_sz
-del full_sz, full_sx, full_sy, full_sp, full_sm, full_id
-
-
-# diagonal of sz matrices
-sz_diag_list = [np.array(np.real(sz_list[i].diagonal())) for i in range(L)]
-sx_diag_list = [np.array(np.real(sx_list[i].diagonal())) for i in range(L)]
-sy_diag_list = [np.array(np.real(sy_list[i].diagonal())) for i in range(L)]
-id_diag_list = [np.array(np.real(id_list[i].diagonal())) for i in range(L)]
-
-
-
-#  -------------------------------  project on the Sz=0 subspace  ------------------------------  #
-
-# find the vectors with Sz_tot = 0
-Sz_tot = 0.
-for i in range(L):
-    Sz_tot += sz_diag_list[i]
-which = np.nonzero(Sz_tot == 0.)[0]
-
-# construct the projector
-dimH_red = len(which)
-Proj = sparse.lil_matrix((dimH_red,N))
-for k in range(dimH_red):
-    Proj[k,which[k]] = 1.
-
-Proj = sparse.csr_matrix(Proj)
-
-# project the sz matrices for later convenience
-Psz_list = []
-for i in range(L):
-    #sx_list[i] = Proj @ sx_list[i] @ Proj.T; sy_list[i] = Proj @ sy_list[i] @ Proj.T
-    Psz_list.append( Proj @ sz_list[i] @ Proj.T )
-    #sp_list[i] = Proj @ sp_list[i] @ Proj.T; sm_list[i] = Proj @ sm_list[i] @ Proj.T
-
-
-# diagonal of the projected sz matrices
-Psz_diag_list = [np.array(np.real(Psz_list[i].diagonal())) for i in range(L)]
-
+#!/usr/bin/env python3
 """
-# project the sz matrices for later convenience
-Pid_list = []
-for i in range(L):
-    #sx_list[i] = Proj @ sx_list[i] @ Proj.T; sy_list[i] = Proj @ sy_list[i] @ Proj.T
-    Pid_list.append( Proj @ id_list[i] @ Proj.T )
-    #sp_list[i] = Proj @ sp_list[i] @ Proj.T; sm_list[i] = Proj @ sm_list[i] @ Proj.T
+ham_chain_fast.py
 
+Fast, memory-efficient version of ham_chain.py that produces the *same output file*:
+    XXZ_OFFDIAG_L{L}.txt
 
-# diagonal of the projected sz matrices
-Pid_diag_list = [np.array(np.real(Pid_list[i].diagonal())) for i in range(L)]
+Implements:
+    H = sum_i [ S^+_{i+1} S^-_i + S^+_i S^-_{i+1} + Delta * S^z_{i+1} S^z_i ]
 
+Uses spin-1/2 operators (S_z = sigma_z/2) and periodic boundary conditions.
 """
 
+import numpy as np
+import scipy.sparse as sp
+import sys
+
+def build_xxz_sparse(L, Delta=1.0):
+    N = 1 << L  # Hilbert space dimension = 2^L
+    rows, cols, data = [], [], []
+
+    for b in range(N):
+        diag_val = 0.0
+        for i in range(L):
+            j = (i + 1) % L
+
+            si = (b >> i) & 1
+            sj = (b >> j) & 1
+
+            # Sz Sz contribution
+            sz_i = 0.5 if si == 1 else -0.5
+            sz_j = 0.5 if sj == 1 else -0.5
+            diag_val += Delta * (sz_i * sz_j)
+
+            # Flip-flop terms
+            if si != sj:
+                bflip = b ^ ((1 << i) | (1 << j))
+                rows.append(bflip)
+                cols.append(b)
+                data.append(1.0)  # amplitude = 1
+
+        # diagonal term
+        rows.append(b)
+        cols.append(b)
+        data.append(diag_val)
+
+    H = sp.csr_matrix(
+        (np.array(data, dtype=np.float64),
+         (np.array(rows, dtype=np.int32), np.array(cols, dtype=np.int32))),
+        shape=(N, N),
+        dtype=np.complex128
+    )
+    return H
 
 
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python3 ham_chain_fast.py L [Delta]")
+        sys.exit(1)
 
+    L = int(sys.argv[1])
+    Delta = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
 
+    print(f"Building XXZ Hamiltonian (fast) for L={L}, Delta={Delta}")
 
+    H = build_xxz_sparse(L, Delta)
 
+    print("Matrix built. shape =", H.shape, " nnz =", H.nnz)
 
+    # --- identical output section ---
+    rows, cols = H.nonzero()
+    vals = np.real(H[rows, cols]).A1  # same as your original code
+
+    filename = f"XXZ_OFFDIAG_L{L}.txt"
+    toSave = np.stack((rows, cols, vals)).T
+    np.savetxt(filename, toSave, fmt=['%d', '%d', '%d'])
+    print("Saved:", filename)
