@@ -10,21 +10,6 @@ from scipy.optimize import fsolve
 import sys
 #from histo_maker import *
 
-
-plt.rcParams["figure.figsize"] = [6,6]
-#plt.rcParams.update({"text.usetex": True, "font.family": "serif", "font.size": 14})
-
-def powerLawDistribution(n, theta, x_min, x_max):
-    number = np.array([])
-    alpha = 2-theta
-    for i in range(n):
-        norm = x_max**(1-alpha) - x_min**(1-alpha)
-        u_val = random.uniform(0, 1)
-        number = np.append(number,random.choice((-1, 1)) * (u_val*norm + x_min**(1-alpha))**(1/(1-alpha)))
-
-    return number
-
-
 def bootstrap_theta(n_vec, w_values, n_bootstrap=1000, ci=68):
     """
     Compute bootstrap error bars for theta(w).
@@ -74,13 +59,16 @@ def bootstrap_theta(n_vec, w_values, n_bootstrap=1000, ci=68):
     return theta_mean, theta_err
 
 
-cols = plt.get_cmap('viridis', 7)
-
+#Number of disorder realizations
 dis_num = 10000
 
+#Disorder values
 W_vec = np.arange(1,26,1)
 
-for L in [10]:
+#System size
+L_vec = [10]
+
+for L in L_vec:
     N=2**L
     for W in W_vec:
         n_vec = []
