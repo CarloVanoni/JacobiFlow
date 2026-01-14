@@ -340,18 +340,6 @@ def plbrm(N,a,b,W):
     return init, H
 
 
-# Create upper triangular matrix
-def create_upper_matrix(values, size):
-    """
-    Duplicate of earlier create_upper_matrix (kept for compatibility).
-
-    See the other create_upper_matrix for details.
-    """
-    upper = np.zeros((size, size))
-    upper[np.triu_indices(size, 1)] = values
-    return(upper)
-
-
 def LNRP_Matrix(n,gamma,p):
     """
     Build a matrix with log-normal-related heavy tails for off-diagonal entries.
