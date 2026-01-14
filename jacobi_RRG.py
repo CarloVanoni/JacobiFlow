@@ -314,16 +314,6 @@ def plbrm(N,a,b,W):
     return init, H
 
 
-# Create upper triangular matrix
-def create_upper_matrix(values, size):
-    """
-    Duplicate of create_upper_matrix above — keep for compatibility with code paths that expect this function.
-    """
-    upper = np.zeros((size, size))
-    upper[np.triu_indices(size, 1)] = values
-    return(upper)
-
-
 def LNRP_Matrix(n,gamma,p):
     """
     Construct a matrix with log-normal-like random off-diagonal elements scaled with n^{-gamma/2}.
