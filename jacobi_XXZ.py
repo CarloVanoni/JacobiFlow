@@ -357,18 +357,6 @@ def plbrm(N,a,b,W):
     return init, H
 
 
-# Create upper triangular matrix
-def create_upper_matrix(values, size):
-    """
-    (Duplicate definition preserved) Fill the strict upper-triangular part of a size x size matrix
-    with `values`. This duplicate exists in the original code and is left here unchanged
-    except for this explanatory docstring.
-    """
-    upper = np.zeros((size, size))
-    upper[np.triu_indices(size, 1)] = values
-    return(upper)
-
-
 def LNRP_Matrix(n,gamma,p):
     """
     Build a log-normal random matrix (LNRP) with off-diagonal lognormal-like entries and uniform diagonal.
