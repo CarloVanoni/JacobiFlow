@@ -14,7 +14,7 @@ This repository contains the code and data used for the paper "Resonance prolife
 - plot_theta_XXZ_bin.py
 - plot_theta_RRG_bin.py
 - plot_theta_Levy_bin.py
-- plot_BoE_flow.py     - Plotting utilities for Baker‑von‑Egmond (BoE) flow / observables
+- plot_BoE_flow.py     - Plotting utilities for the heuristic flow equation
 - XXZ_OFFDIAG_L*.txt   - Precomputed off-diagonal data for the XXZ model (L=4,6,8,10,12,14,16)
 
 Note: Some data files (especially XXZ_OFFDIAG_L16.txt) are large — take care when cloning or downloading the repository.
@@ -52,9 +52,7 @@ Each main script is a standalone Python program. Typical usage patterns:
 
 ## Data files
 
-- XXZ_OFFDIAG_L*.txt: text files with precomputed off-diagonal matrix-element data for the XXZ model at different system sizes. They are provided to reproduce figures from the paper without re-running expensive simulations.
-
-If you want to regenerate data you can use the corresponding jacobi_* and decres_* scripts; be aware of their computational cost.
+- XXZ_OFFDIAG_L*.txt: text files with precomputed off-diagonal matrix-element data for the XXZ model at different system sizes. 
 
 ## Reproducing figures
 
