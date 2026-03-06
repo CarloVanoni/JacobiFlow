@@ -1,6 +1,6 @@
 # JacobiFlow
 
-This repository contains the code and data used for the paper "Resonance proliferation through the Jacobi flow" by A. Chandran, D. M. Long, and C. Vanoni. The implementations compute and analyse the flow of matrix elements and resonances for several model classes (XXZ chain, Random Regular Graphs (RRG), and Levy matrices), and include plotting utilities and precomputed data files.
+This repository contains the code and data used for the paper "Resonance Proliferation Across Localization Transitions" by C. Vanoni, D. M. Long, and A. Chandran. The implementations compute and analyse the flow of matrix elements and resonances for several model classes (XXZ chain, Random Regular Graphs (RRG), and Levy matrices), and include plotting utilities and precomputed data files.
 
 ## Repository structure
 
@@ -70,7 +70,7 @@ Look inside each plotting script to find the exact filenames and parameters used
 
 ## Citation
 
-If you use this code in your research, please cite the corresponding paper ("Resonance proliferation through the Jacobi flow" by A. Chandran, D. M. Long, and C. Vanoni - arXiv:26xx.xxxxx). 
+If you use this code in your research, please cite the corresponding paper ("Resonance Proliferation Across Localization Transitions" by by C. Vanoni, D. M. Long, and A. Chandran - arXiv:260x.xxxxx). 
 ## Contact
 
 Owner: https://github.com/CarloVanoni
