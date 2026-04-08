@@ -52,7 +52,8 @@ Each main script is a standalone Python program. Typical usage patterns:
 
 ## Data files
 
-- XXZ_OFFDIAG_L*.txt: text files with precomputed off-diagonal matrix-element data for the XXZ model at different system sizes. 
+- XXZ_OFFDIAG_L*.txt: text files with precomputed off-diagonal matrix-element data for the XXZ model at different system sizes.
+- Results_paper.zip contains the folder with the data used to generate the plots in the paper. They can be obtained by running the Python scripts "plot_theta_*_bin.py".
 
 ## Reproducing figures
 
