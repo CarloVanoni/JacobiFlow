@@ -54,13 +54,13 @@ for L in range(10, 11):
         w_values = np.array(w_values)
 
         # Filenames for the precomputed results (unchanged)
-        filename = "Results_summary_bin/theta_RRG_Jac_L%d_W%.2f_dis%d_bin.txt" % (L, W, dis)
+        filename = "Results_paper/theta_RRG_Jac_L%d_W%.2f_dis%d_bin.txt" % (L, W, dis)
         theta = np.loadtxt(filename)
 
-        filename = "Results_summary_bin/theta_err_RRG_Jac_L%d_W%.2f_dis%d_bin.txt" % (L, W, dis)
+        filename = "Results_paper/theta_err_RRG_Jac_L%d_W%.2f_dis%d_bin.txt" % (L, W, dis)
         theta_err = np.loadtxt(filename)
 
-        filename = "Results_summary_bin/rho_dec_RRG_Jac_L%d_W%.2f_dis%d_bin.txt" % (L, W, dis)
+        filename = "Results_paper/rho_dec_RRG_Jac_L%d_W%.2f_dis%d_bin.txt" % (L, W, dis)
         mean_nN = np.loadtxt(filename)
 
         # Prepare w values for plotting: midpoints of neighboring entries (matching original)
