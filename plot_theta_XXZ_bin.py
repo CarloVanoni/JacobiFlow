@@ -60,8 +60,8 @@ for L in range(14, 15):
         w_values = np.array([w_start / (factor ** i) for i in range(num_steps)])
 
         # Load theta and its error for the given L, W, dis
-        theta_fname = "Results_summary_bin/theta_XXZ_Jac_L%d_W%.2f_dis%d_test.txt" % (L, W, dis)
-        theta_err_fname = "Results_summary_bin/theta_err_XXZ_Jac_L%d_W%.2f_dis%d_test.txt" % (L, W, dis)
+        theta_fname = "Results_paper/theta_XXZ_Jac_L%d_W%.2f_dis%d_bin.txt" % (L, W, dis)
+        theta_err_fname = "Results_paper/theta_err_XXZ_Jac_L%d_W%.2f_dis%d_bin.txt" % (L, W, dis)
 
         theta = np.loadtxt(theta_fname)
         theta_err = np.loadtxt(theta_err_fname)
