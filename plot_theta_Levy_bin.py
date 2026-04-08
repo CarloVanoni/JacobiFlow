@@ -58,11 +58,11 @@ for iw, mu in enumerate(mu_vec):
     w_plot = w_plot[:-1]
 
     # Load precomputed theta and theta_err from Results_summary_bin
-    filename = "Results_summary_bin/theta_Levy_Jac_N%d_gamma%.2f_mu%.2f_W%.2f_dis%d_bin.txt" % (
+    filename = "Results_paper/theta_Levy_Jac_N%d_gamma%.2f_mu%.2f_W%.2f_dis%d_bin.txt" % (
         N, gamma, mu, W, dis)
     theta = np.loadtxt(filename)
 
-    filename_err = "Results_summary_bin/theta_err_Levy_Jac_N%d_gamma%.2f_mu%.2f_W%.2f_dis%d_bin.txt" % (
+    filename_err = "Results_paper/theta_err_Levy_Jac_N%d_gamma%.2f_mu%.2f_W%.2f_dis%d_bin.txt" % (
         N, gamma, mu, W, dis)
     theta_err = np.loadtxt(filename_err)
 
