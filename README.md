@@ -71,7 +71,7 @@ Look inside each plotting script to find the exact filenames and parameters used
 
 ## Citation
 
-If you use this code in your research, please cite the corresponding paper ("Resonance Proliferation Across Localization Transitions" by by C. Vanoni, D. M. Long, and A. Chandran - arXiv:260x.xxxxx). 
+If you use this code in your research, please cite the corresponding paper ("Resonance Proliferation Across Localization Transitions" by C. Vanoni, D. M. Long, and A. Chandran - arXiv:260x.xxxxx). 
 ## Contact
 
 Owner: https://github.com/CarloVanoni
